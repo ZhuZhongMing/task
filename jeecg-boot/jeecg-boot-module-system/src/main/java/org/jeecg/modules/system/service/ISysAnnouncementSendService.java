@@ -2,6 +2,7 @@ package org.jeecg.modules.system.service;
 
 import java.util.List;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
 import org.jeecg.modules.system.entity.SysAnnouncementSend;
 import org.jeecg.modules.system.model.AnnouncementSendModel;
 

@@ -9,7 +9,7 @@
 		<artifactId>jeecg-boot-parent</artifactId>
 		<version>2.2.1</version>
 	</parent>
-	
+
 	<repositories>
 		<repository>
 			<id>aliyun</id>
