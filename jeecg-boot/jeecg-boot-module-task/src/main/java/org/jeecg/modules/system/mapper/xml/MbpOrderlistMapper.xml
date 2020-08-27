@@ -13,4 +13,10 @@
 		FROM  mbp_orderlist
 		WHERE
 			 order_id = #{mainId} 	</select>
+	<!--订单明细-通过主表ID查询，生成对应的生产计划明细-->
+    <select id="queryListToPlan" resultType="org.jeecg.modules.system.vo.PlanVO" parameterType="java.lang.String">
+		SELECT material_id as materialId, order_num as number
+		FROM mbp_orderlist
+		WHERE order_id = #{id}
+	</select>
 </mapper>

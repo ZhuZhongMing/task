@@ -102,17 +102,22 @@
             align: 'center',
             dataIndex: 'figureNo',
           },
+          {
+            title: '设备编号',
+            align: 'center',
+            dataIndex: 'equipmentId_dictText'
+          },
           /*{
             title: '优先级编号',
             align: 'center',
             dataIndex: 'priorityId',
-          },
+          },*/
           {
-            title: '计划状态编号0-等待确认,1-正在进行,2-计划完成',
+            title: '状态', // 计划状态编号0-等待确认,1-正在进行,2-计划完成
             align: 'center',
             dataIndex: 'planstatusId_dictText'
           },
-          {
+          /*{
             title: '是否关闭',
             align: 'center',
             dataIndex: 'isClosed',

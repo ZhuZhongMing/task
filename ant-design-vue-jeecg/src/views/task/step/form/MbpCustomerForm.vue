@@ -3,6 +3,12 @@
     <j-form-container :disabled="formDisabled">
       <a-form :form="form" slot="detail">
         <a-row>
+          <!--<a-col :span="8" hidden>
+            <a-form-item label="客户ID" :labelCol="labelCol" :wrapperCol="wrapperCol">
+              &lt;!&ndash;<a-input v-decorator="['customerName', validatorRules.customerName]" placeholder="请输入客户名称"></a-input>&ndash;&gt;
+              <a-input v-decorator="['id']" placeholder="id"></a-input>
+            </a-form-item>
+          </a-col>-->
           <a-col :span="8">
             <a-form-item label="客户名称" :labelCol="labelCol" :wrapperCol="wrapperCol">
               <a-input v-decorator="['customerName', validatorRules.customerName]" placeholder="请输入客户名称"></a-input>
@@ -193,7 +199,7 @@
             <!--<a-col v-if="showFlowSubmitButton" :span="24" style="text-align: center">-->
             <!--<a-button @click="submitForm">提 交</a-button>-->
             <a-form-item :wrapperCol="{span: 19, offset: 5}">
-              <a-button type="primary" @click="nextStep">下一步</a-button>
+              <a-button type="primary" @click="submitForm">下一步</a-button>
             </a-form-item>
           </a-col>
         </a-row>
@@ -346,7 +352,7 @@
         this.model = Object.assign({}, record);
         this.visible = true;
         this.$nextTick(() => {
-          this.form.setFieldsValue(pick(this.model,'customerName','abcName','indexCode','isSupplier','isClient','customerType','categoryType','customerArea','firstCoDate','categoryType2','isAssist','customerAddress','postCode','customerManager','contactPerson','telephone','email','fax','bank','account','paymentKind','paymentCircle','currency','taxNo','license','creditGrade','creditLimit','salesman','customerStatus','description','disp','webSite','createBy','createTime','updateBy','updateTime','delFlag'))
+          this.form.setFieldsValue(pick(this.model,'id','customerName','abcName','indexCode','isSupplier','isClient','customerType','categoryType','customerArea','firstCoDate','categoryType2','isAssist','customerAddress','postCode','customerManager','contactPerson','telephone','email','fax','bank','account','paymentKind','paymentCircle','currency','taxNo','license','creditGrade','creditLimit','salesman','customerStatus','description','disp','webSite','createBy','createTime','updateBy','updateTime','delFlag'))
         })
       },
       //渲染流程表单数据
@@ -376,11 +382,21 @@
                method = 'put';
             }
             let formData = Object.assign(this.model, values);
-            console.log("表单提交数据",formData)
+            //console.log("method : ",method)
+            // console.log("表单提交数据",formData)
             httpAction(httpurl,formData,method).then((res)=>{
               if(res.success){
-                that.$message.success(res.message);
-                that.$emit('ok');
+                //console.log("id : " + that.model.id)
+                //that.$message.success(res.message);
+                that.$nextTick(function(){
+                  if (!that.model.id) {
+                    that.model.id = res.result.id
+                    //console.log("id : " + that.model.id)
+                    //that.form.setFieldsValue({'id': res.result.id})
+                  }
+                  that.nextStep()
+                })
+                //that.$emit('ok');
               }else{
                 that.$message.warning(res.message);
               }
@@ -388,7 +404,6 @@
               that.confirmLoading = false;
             })
           }
-
         })
       },
       popupCallback(row){
@@ -397,8 +412,20 @@
       handleCategoryChange(value,backObj){
         this.form.setFieldsValue(backObj)
       },
+      /*当从下一步返回到这一步时，需传入id，加载此条记录*/
+      loadForm(id) {
+        let params = {id:id};
+        getAction(this.url.queryById,params).then((res)=>{
+          if(res.success){
+            this.model = res.result
+            console.log("result : " + JSON.stringify(this.model))
+            this.edit (res.result);
+          }
+        });
+      },
       nextStep () {
-        this.$emit('nextStep')
+        //console.log("id : " + this.model.id)
+        this.$emit('nextStep',this.model)
       }
     }
   }

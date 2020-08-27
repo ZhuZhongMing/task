@@ -3,6 +3,7 @@ package org.jeecg.modules.system.entity;
 import java.io.Serializable;
 import java.util.Date;
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -42,6 +43,11 @@ public class MbpOrder implements Serializable {
     @Dict(dictTable = "mbp_customer", dicText = "customer_name", dicCode = "id")
     @ApiModelProperty(value = "客户编号")
     private String customerId;
+	/**客户名称**/
+	@TableField(exist = false)
+	private String customerName;
+
+
 	/**业务员*/
 	@Excel(name = "业务员", width = 15, dictTable = "sys_user", dicText = "realname", dicCode = "username")
     @Dict(dictTable = "sys_user", dicText = "realname", dicCode = "username")

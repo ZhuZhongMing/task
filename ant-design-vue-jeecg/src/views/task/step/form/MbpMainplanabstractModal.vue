@@ -1,13 +1,5 @@
 <template>
-  <j-modal
-    :title="title"
-    :width="1200"
-    :visible="visible"
-    :maskClosable="false"
-    :confirmLoading="confirmLoading"
-    switchFullscreen
-    @ok="handleOk"
-    @cancel="handleCancel">
+
     <a-spin :spinning="confirmLoading">
       <!-- 主表单区域 -->
       <a-form :form="form">
@@ -19,7 +11,9 @@
           </a-col>
           <a-col :xs="24" :sm="12">
             <a-form-item label="订单编号" :labelCol="labelCol" :wrapperCol="wrapperCol">
-              <j-dict-select-tag type="list" v-decorator="['orderId', validatorRules.orderId]" :trigger-change="true" dictCode="mbp_order,order_title,id" placeholder="请选择订单编号" @change="changeOrder"/>
+              <!--<j-dict-select-tag type="list" v-decorator="['orderId', validatorRules.orderId]" :trigger-change="true" dictCode="mbp_order,order_title,id" placeholder="请选择订单编号" disabled/>-->
+              <!--<a-select v-decorator="['orderId', validatorRules.orderId]" placeholder="请选择订单编号" disabled></a-select>-->
+              <a-input v-decorator="['orderTitle', validatorRules.orderTitle]" placeholder="请选择订单编号" disabled></a-input>
             </a-form-item>
           </a-col>
           <!--<a-col :xs="24" :sm="12">
@@ -97,13 +91,22 @@
             :maxHeight="300"
             :rowNumber="true"
             :rowSelection="true"
-            :actionButton="mbpMainplanTable.actionButton"/>
+            :actionButton="false"/>
         </a-tab-pane>
 
       </a-tabs>
 
+      <a-row>
+        <a-col :span="24" style="text-align: right">
+          <a-form-item :wrapperCol="{span: 19, offset: 5}">
+            <!--<a-button type="primary" @click="nextStep">提交</a-button>-->
+            <a-button @click="prevStep">上一步</a-button>
+            <a-button style="margin-left: 8px" type="primary" @click="handleOk">提交</a-button>
+          </a-form-item>
+        </a-col>
+      </a-row>
+
     </a-spin>
-  </j-modal>
 </template>
 
 <script>
@@ -116,7 +119,7 @@
   import JSelectDepart from '@/components/jeecgbiz/JSelectDepart'
   import JSelectUserByDep from '@/components/jeecgbiz/JSelectUserByDep'
   import JDictSelectTag from "@/components/dict/JDictSelectTag"
-  import { getAction } from '@/api/manage'
+  import { getAction, httpAction } from '@/api/manage'
 
   export default {
     name: 'MbpMainplanabstractModal',
@@ -158,13 +161,17 @@
               { required: true, message: '请选择订单!'},
             ]
           },
+          orderTitle: {
+            rules: [
+              { required: true, message: '请选择订单!'},
+            ]
+          },
         },
         refKeys: ['mbpMainplan', ],
         tableKeys:['mbpMainplan', ],
         activeKey: 'mbpMainplan',
         // 生产计划明细
         mbpMainplanTable: {
-          actionButton: true, //新增按钮
           loading: false,
           dataSource: [],
           columns: [
@@ -175,6 +182,7 @@
               dictCode:"mbp_product_map,product_name,id",
               width:"200px",
               placeholder: '请输入${title}',
+              disabled:true,
               defaultValue: '',
             },
             {
@@ -183,6 +191,7 @@
               type: FormTypes.inputNumber,
               width:"200px",
               placeholder: '请输入${title}',
+              disabled: true,
               defaultValue: '',
               validateRules: [{ pattern: "z", message: "${title}格式不正确" },{ required: true, message: '${title}不能为空' }],
             },
@@ -367,37 +376,59 @@
       validateError(msg){
         this.$message.error(msg)
       },
-     popupCallback(row){
+      popupCallback(row){
        this.form.setFieldsValue(pick(row,'deptId','orderId','salesmanId','plantypeId','saleDate','auditorId','auditDate','auditStatus','disp','createBy','createTime','updateBy','updateTime','delFlag'))
-     },
-    /*选择订单*/
-     changeOrder(e) {
-       if (e){
-         /*获取订单明细中数量生成对应生产计划*/
-         let params = {id:e};
-         getAction(this.url.queryListToPlan,params).then((res)=>{
-           if(res.success){
-             console.log("result : " + JSON.stringify(res.result))
-             this.mbpMainplanTable.dataSource = res.result
-             this.mbpMainplanTable.columns[0].disabled = true
-             this.mbpMainplanTable.columns[1].disabled = true
-             this.mbpMainplanTable.actionButton = false //禁用新增按钮
-             //this.edit (res.result);
-           }
-         });
-       }
-     },
-   /** 关闭弹窗，并将所有JEditableTable实例回归到初始状态 */
-   close() {
-    this.visible = false
-    this.eachAllTable((item) => {
-      item.initialize()
-    })
-     this.mbpMainplanTable.columns[0].disabled = false
-     this.mbpMainplanTable.columns[1].disabled = false
-     this.mbpMainplanTable.actionButton = true //启用新增按钮
-    this.$emit('close')
-  },
+      },
+      /** 发起请求，自动判断是执行新增还是修改操作 */
+      request(formData) {
+        let url = this.url.add, method = 'post'
+        if (this.model.id) {
+          url = this.url.edit
+          method = 'put'
+        }
+        this.confirmLoading = true
+        httpAction(url, formData, method).then((res) => {
+          if (res.success) {
+            //this.$message.success(res.message)
+            //this.$emit('ok')
+            //this.close()
+            this.nextStep ()
+          } else {
+            this.$message.warning(res.message)
+          }
+        }).finally(() => {
+          this.confirmLoading = false
+        })
+      },
+      nextStep () {
+        this.$emit('nextStep')
+      },
+      prevStep () {
+        this.$emit('prevStep',this.model)
+      },
+      /*接收订单页面传来的orderId*/
+      getOrderId(id, title) {
+        console.log(id + "  " + title)
+        let fieldval = {
+          'orderTitle': title
+        }
+        this.$nextTick(() => {
+          this.model.orderId = id
+          this.form.setFieldsValue(fieldval)
+        })
+        /*获取订单明细中数量生成对应生产计划*/
+        let params = {id:id};
+        getAction(this.url.queryListToPlan,params).then((res)=>{
+          if(res.success){
+            console.log("result : " + JSON.stringify(res.result))
+            this.mbpMainplanTable.dataSource = res.result
+            //this.edit (res.result);
+          }
+        });
+
+
+      }
+
     }
   }
 </script>

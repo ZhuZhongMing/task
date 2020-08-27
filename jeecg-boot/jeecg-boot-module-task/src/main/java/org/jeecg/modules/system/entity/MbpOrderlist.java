@@ -40,7 +40,7 @@ public class MbpOrderlist implements Serializable {
 	/**数量*/
 	@Excel(name = "数量", width = 15)
 	@ApiModelProperty(value = "数量")
-	private Integer orderNum;
+	private Long orderNum;
 	/**模式*/
 	@Excel(name = "模式", width = 15)
 	@ApiModelProperty(value = "模式")

@@ -3,15 +3,16 @@ package org.jeecg.modules.system.controller;
 import java.io.UnsupportedEncodingException;
 import java.io.IOException;
 import java.net.URLDecoder;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.text.SimpleDateFormat;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.jeecg.modules.system.entity.MbpCustomer;
+import org.jeecg.modules.system.service.IMbpCustomerService;
+import org.jeecg.modules.system.vo.PlanVO;
 import org.jeecgframework.poi.excel.ExcelImportUtil;
 import org.jeecgframework.poi.excel.def.NormalExcelConstants;
 import org.jeecgframework.poi.excel.entity.ExportParams;
@@ -57,6 +58,8 @@ public class MbpOrderController {
 	private IMbpOrderService mbpOrderService;
 	@Autowired
 	private IMbpOrderlistService mbpOrderlistService;
+	@Autowired
+	private IMbpCustomerService iMbpCustomerService;
 	
 	/**
 	 * 分页列表查询
@@ -90,10 +93,27 @@ public class MbpOrderController {
 	@ApiOperation(value="订单-添加", notes="订单-添加")
 	@PostMapping(value = "/add")
 	public Result<?> add(@RequestBody MbpOrderPage mbpOrderPage) {
+		// 添加操作之前，获取当前时间记录 - 到毫秒
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+		String beforeSave = sdf.format(new Date());
+		log.info("before : " + beforeSave);
+
 		MbpOrder mbpOrder = new MbpOrder();
 		BeanUtils.copyProperties(mbpOrderPage, mbpOrder);
 		mbpOrderService.saveMain(mbpOrder, mbpOrderPage.getMbpOrderlistList());
-		return Result.ok("添加成功！");
+
+		//添加成功将id查出返回至前端
+		QueryWrapper<MbpOrder> queryWrapper = new QueryWrapper<>();
+		queryWrapper.ge("create_time", beforeSave);
+		List<MbpOrder> list = mbpOrderService.list(queryWrapper);
+		MbpOrder oreder = new MbpOrder();
+		oreder.setId(list.get(0).getId());
+		Result<MbpOrder> result = new Result<>();
+		result.setResult(oreder);
+		result.setSuccess(true);
+		result.setMessage("添加成功！");
+
+		return result;
 	}
 	
 	/**
@@ -150,7 +170,7 @@ public class MbpOrderController {
 	 * @param id
 	 * @return
 	 */
-	@AutoLog(value = "订单-通过id查询")
+	//@AutoLog(value = "订单-通过id查询")
 	@ApiOperation(value="订单-通过id查询", notes="订单-通过id查询")
 	@GetMapping(value = "/queryById")
 	public Result<?> queryById(@RequestParam(name="id",required=true) String id) {
@@ -158,9 +178,27 @@ public class MbpOrderController {
 		if(mbpOrder==null) {
 			return Result.error("未找到对应数据");
 		}
+		MbpCustomer customer = iMbpCustomerService.getById(mbpOrder.getCustomerId());
+		mbpOrder.setCustomerName(customer.getCustomerName());
 		return Result.ok(mbpOrder);
-
 	}
+
+	 /**
+	  * 订单明细-通过主表ID查询，生成对应的生产计划明细
+	  *
+	  * @param id
+	  * @return
+	  */
+	 @ApiOperation(value="订单明细-通过主表ID查询，生成对应的生产计划明细", notes="订单明细-通过主表ID查询，生成对应的生产计划明细")
+	 @GetMapping(value = "/queryListToPlan")
+	 public Result<?> queryListToPlan(@RequestParam(name="id",required=true) String id) {
+		 /*List<MbpOrderlist> mbpOrderlistList = mbpOrderlistService.selectByMainId(id);
+		 IPage <MbpOrderlist> page = new Page<>();
+		 page.setRecords(mbpOrderlistList);
+		 page.setTotal(mbpOrderlistList.size());*/
+		 List<PlanVO> list = mbpOrderlistService.queryListToPlan(id);
+		 return Result.ok(list);
+	 }
 	
 	/**
 	 * 通过id查询
@@ -168,7 +206,7 @@ public class MbpOrderController {
 	 * @param id
 	 * @return
 	 */
-	@AutoLog(value = "订单明细-通过主表ID查询")
+	//@AutoLog(value = "订单明细-通过主表ID查询")
 	@ApiOperation(value="订单明细-通过主表ID查询", notes="订单明细-通过主表ID查询")
 	@GetMapping(value = "/queryMbpOrderlistByMainId")
 	public Result<?> queryMbpOrderlistListByMainId(@RequestParam(name="id",required=true) String id) {

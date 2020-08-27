@@ -17,7 +17,11 @@
           </a-col>
           <a-col :xs="24" :sm="12">
             <a-form-item label="客户" :labelCol="labelCol" :wrapperCol="wrapperCol">
-              <j-dict-select-tag type="list" v-decorator="['customerId', validatorRules.customerId]" :trigger-change="true" dictCode="mbp_customer,customer_name,id" placeholder="请选择客户"/>
+              <!--<j-dict-select-tag type="list" v-decorator="['customerId', validatorRules.customerId]" :trigger-change="true" dictCode="mbp_customer,customer_name,id" placeholder="请选择客户"/>-->
+              <!--<a-select v-decorator="['customerId', validatorRules.customerId]" placeholder="请选择客户">
+                <a-option v-if="customer" :value="customer.id">{{customer.name}}</a-option>
+              </a-select>-->
+              <a-input v-decorator="['customerName', validatorRules.customerName]" placeholder="请选择客户" disabled></a-input>
             </a-form-item>
           </a-col>
           <!--<a-col :xs="24" :sm="12">
@@ -140,7 +144,7 @@
           <a-form-item :wrapperCol="{span: 19, offset: 5}">
             <!--<a-button type="primary" @click="nextStep">提交</a-button>-->
             <a-button @click="prevStep">上一步</a-button>
-            <a-button style="margin-left: 8px" type="primary" @click="nextStep">下一步</a-button>
+            <a-button style="margin-left: 8px" type="primary" @click="handleOk">下一步</a-button>
           </a-form-item>
         </a-col>
       </a-row>
@@ -162,6 +166,7 @@
   import JDictSelectTag from "@/components/dict/JDictSelectTag"
   import JCategorySelect from '@/components/jeecg/JCategorySelect'
   import ACol from 'ant-design-vue/es/grid/Col'
+  import { httpAction, getAction } from '@/api/manage'
 
   export default {
     name: 'MbpOrderModal',
@@ -177,6 +182,8 @@
     },
     data() {
       return {
+        /*客户*/
+        customer: {},
         labelCol: {
           xs: { span: 24 },
           sm: { span: 6 },
@@ -211,6 +218,11 @@
               { required: true, message: '请输入客户编号!'},
             ]
           },
+          customerName: {
+            rules: [
+              { required: true, message: '请输入客户编号!'},
+            ]
+          }
         },
         refKeys: ['mbpOrderlist', ],
         tableKeys:['mbpOrderlist', ],
@@ -326,6 +338,7 @@
         url: {
           add: "/system/mbpOrder/add",
           edit: "/system/mbpOrder/edit",
+          queryById: "/system/mbpOrder/queryById",
           mbpOrderlist: {
             list: '/system/mbpOrder/queryMbpOrderlistByMainId'
           },
@@ -348,6 +361,44 @@
         if (typeof this.addAfter === 'function') this.addAfter(this.model)
         this.edit({})
         this.genOrderId()
+      },
+      /** 发起请求，自动判断是执行新增还是修改操作 */
+      request(formData) {
+        let url = this.url.add, method = 'post'
+        if (this.model.id) {
+          url = this.url.edit
+          method = 'put'
+        }
+        this.confirmLoading = true
+        httpAction(url, formData, method).then((res) => {
+          if (res.success) {
+            //this.$message.success(res.message)
+            //console.log("id : " + res.result.id)
+            if (!this.model.id) {
+              this.model.id = res.result.id
+              //console.log("id : " + that.model.id)
+              //that.form.setFieldsValue({'id': res.result.id})
+            }
+            this.nextStep()
+            //this.$emit('ok')
+            //this.close()
+          } else {
+            this.$message.warning(res.message)
+          }
+        }).finally(() => {
+          this.confirmLoading = false
+        })
+      },
+      /** 接收客户页面传来的客户id,名称 **/
+      getCustomerId(id,name) {
+        // console.log("id : " + id + "   name : " + name)
+        let fieldval = {
+          'customerName': name
+        }
+        this.$nextTick(() => {
+          this.model.customerId = id
+          this.form.setFieldsValue(fieldval)
+        })
       },
       /** 生成一个订单编号 */
       genOrderId() {
@@ -374,7 +425,7 @@
       },
       /** 调用完edit()方法之后会自动调用此方法 */
       editAfter() {
-        let fieldval = pick(this.model,'orderId','orderTitle','customerId','salesman','deptId','paymentId','paymentDate','deliveryMethod','deliveryFee','auditPerson','auditTime','currency','orderType','orderState','accessory','contract','disp','createBy','createTime','updateBy','updateTime','delFlag')
+        let fieldval = pick(this.model,'orderId','orderTitle','customerId','customerName','salesman','deptId','paymentId','paymentDate','deliveryMethod','deliveryFee','auditPerson','auditTime','currency','orderType','orderState','accessory','contract','disp','createBy','createTime','updateBy','updateTime','delFlag')
         this.$nextTick(() => {
           this.form.setFieldsValue(fieldval)
         })
@@ -403,11 +454,22 @@
        this.form.setFieldsValue(backObj)
       },
       nextStep () {
-        this.$emit('nextStep')
+        this.$emit('nextStep',this.model)
       },
       prevStep () {
-        this.$emit('prevStep')
-      }
+        this.$emit('prevStep',this.model)
+      },
+      /*当从下一步返回到这一步时，需传入id，加载此条记录*/
+      loadForm(id) {
+        let params = {id:id};
+        getAction(this.url.queryById,params).then((res)=>{
+          if(res.success){
+            this.model = res.result
+            console.log("result : " + JSON.stringify(this.model))
+            this.edit (res.result);
+          }
+        });
+      },
 
     }
   }

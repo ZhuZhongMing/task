@@ -40,7 +40,7 @@ public class MbpMainplan implements Serializable {
 	/**数量*/
 	@Excel(name = "数量", width = 15)
 	@ApiModelProperty(value = "数量")
-	private java.math.BigDecimal number;
+	private Long number;
 	/**开始时间*/
 	@Excel(name = "开始时间", width = 15, format = "yyyy-MM-dd")
 	@JsonFormat(timezone = "GMT+8",pattern = "yyyy-MM-dd")
@@ -111,4 +111,9 @@ public class MbpMainplan implements Serializable {
 	@Dict(dicCode = "del_flag")
 	@ApiModelProperty(value = "删除标识0-正常,1-已删除")
 	private Integer delFlag;
+	/**设备编号*/
+	@Excel(name = "设备编号", width = 15, dictTable = "mbp_equipment", dicText = "equipment_name", dicCode = "id")
+	@Dict(dictTable = "mbp_equipment", dicText = "equipment_name", dicCode = "id")
+	@ApiModelProperty(value = "设备编号")
+	private java.lang.String equipmentId;
 }
